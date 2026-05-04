@@ -7,6 +7,7 @@ import { stripMemoryTagsFromPrompt } from '../../utils/tag-stripping.js';
 import { HOOK_EXIT_CODES } from '../../shared/hook-constants.js';
 import { normalizePlatformSource } from '../../shared/platform-source.js';
 import { shouldTrackProject } from '../../shared/should-track-project.js';
+import { MemoryManager } from '../../memory/memory-manager.js';
 
 export const summarizeHandler: EventHandler = {
   async execute(input: NormalizedHookInput): Promise<HookResult> {
@@ -41,6 +42,18 @@ export const summarizeHandler: EventHandler = {
     } catch (err) {
       logger.warn('HOOK', `Stop hook: failed to extract last assistant message for session ${sessionId}: ${err instanceof Error ? err.message : err}`);
       return { continue: true, suppressOutput: true, exitCode: HOOK_EXIT_CODES.SUCCESS };
+    }
+
+    // claude-mem-pro: archive to hierarchical .claude-mem/ file structure (SessionEnd).
+    // Wrapped in try/catch — never blocks the main summarize flow.
+    if (lastAssistantMessage && lastAssistantMessage.trim() && input.cwd) {
+      try {
+        const manager = new MemoryManager(input.cwd);
+        manager.archiveSession(lastAssistantMessage);
+        logger.debug('HOOK', 'claude-mem-pro: session archived to .claude-mem/', { cwd: input.cwd });
+      } catch (archiveErr) {
+        logger.warn('HOOK', `claude-mem-pro: archiveSession failed (non-fatal): ${archiveErr instanceof Error ? archiveErr.message : archiveErr}`);
+      }
     }
 
     if (!lastAssistantMessage || !lastAssistantMessage.trim()) {

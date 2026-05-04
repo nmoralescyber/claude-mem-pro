@@ -10,10 +10,37 @@ import { HOOK_EXIT_CODES } from '../../shared/hook-constants.js';
 import { logger } from '../../utils/logger.js';
 import { loadFromFileOnce } from '../../shared/hook-settings.js';
 import { readStaleMarker } from '../../shared/oauth-token.js';
+import { MemoryManager } from '../../memory/memory-manager.js';
+import { ConflictDetector } from '../../conflict-detector/detector.js';
 
 export const contextHandler: EventHandler = {
   async execute(input: NormalizedHookInput): Promise<HookResult> {
     const cwd = input.cwd ?? process.cwd();
+
+    // claude-mem-pro: build file-based hierarchical context (CORE.md + RECENT.md + topics).
+    // activeFiles is not available in hook input; pass empty array for now (Phase 3 wires it).
+    // Wrapped in try/catch — never blocks the main DB-sourced context injection.
+    let proMemoryContext = '';
+    try {
+      const manager = new MemoryManager(cwd);
+      proMemoryContext = manager.buildSessionContext([]);
+    } catch (memErr) {
+      logger.warn('HOOK', `claude-mem-pro: buildSessionContext failed (non-fatal): ${memErr instanceof Error ? memErr.message : memErr}`);
+    }
+
+    // claude-mem-pro: run conflict detector — warns about memory vs spec divergence, never blocks.
+    let conflictWarning = '';
+    try {
+      const detector = new ConflictDetector(cwd);
+      const conflicts = detector.detect();
+      if (conflicts.length > 0) {
+        conflictWarning = ConflictDetector.formatConflicts(conflicts);
+        logger.warn('HOOK', `claude-mem-pro: ${conflicts.length} conflict(s) detected at session start`);
+      }
+    } catch (detectErr) {
+      logger.warn('HOOK', `claude-mem-pro: ConflictDetector failed (non-fatal): ${detectErr instanceof Error ? detectErr.message : detectErr}`);
+    }
+
     const context = getProjectContext(cwd);
     const port = getWorkerPort();
 
@@ -42,6 +69,20 @@ export const contextHandler: EventHandler = {
     } else {
       logger.warn('HOOK', 'Context response was not a string', { type: typeof contextResult });
       return emptyResult;
+    }
+
+    // claude-mem-pro: prepend file-based memory tier ahead of the DB-sourced context.
+    if (proMemoryContext) {
+      additionalContext = additionalContext
+        ? `${proMemoryContext}\n\n---\n\n${additionalContext}`
+        : proMemoryContext;
+    }
+
+    // claude-mem-pro: prepend conflict warnings (non-blocking — warn only).
+    if (conflictWarning) {
+      additionalContext = additionalContext
+        ? `${conflictWarning}\n\n---\n\n${additionalContext}`
+        : conflictWarning;
     }
 
     // Issue #2215: surface stale OAuth token marker as a session-start hint.

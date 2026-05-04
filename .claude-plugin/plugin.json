@@ -1,7 +1,7 @@
 {
-  "name": "claude-mem",
-  "version": "12.6.0",
-  "description": "Memory compression system for Claude Code - persist context across sessions",
+  "name": "claude-mem-pro",
+  "version": "1.0.0",
+  "description": "claude-mem fork with per-project config, hierarchical memory, /remember command, and conflict detection",
   "author": {
     "name": "Alex Newman"
   },

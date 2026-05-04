@@ -26,6 +26,7 @@ import {
 // @ts-ignore - Agent SDK types may not be available
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { ClassifiedProviderError } from './provider-errors.js';
+import { ProjectConfigLoader } from '../../config/project-config.js';
 
 /**
  * Classify a ClaudeProvider error (executable spawn failures, SDK errors,
@@ -119,7 +120,7 @@ export class ClaudeProvider {
     // Find and validate Claude executable (shared utility, closes #2222)
     const claudePath = findClaudeExecutable('SDK');
 
-    const modelId = session.modelOverride || this.getModelId();
+    const modelId = session.modelOverride || this.getModelId(session.project);
     const disallowedTools = [
       'Bash',           // Prevent infinite loops
       'Read',           // No file reading
@@ -439,7 +440,21 @@ export class ClaudeProvider {
     }
   }
 
-  private getModelId(): string {
+  private getModelId(projectCwd?: string): string {
+    // claude-mem-pro: prefer per-project .claude-mem.json model when present.
+    // Falls back to the global CLAUDE_MEM_MODEL setting otherwise.
+    if (projectCwd && ProjectConfigLoader.hasProjectConfig(projectCwd)) {
+      ProjectConfigLoader.reset();
+      const candidate = ProjectConfigLoader.load(projectCwd).session_summary_model;
+      // Validate the model string to prevent injection of arbitrary values from
+      // a misconfigured or tampered .claude-mem.json. Must start with "claude-"
+      // and be a reasonable length. This intentionally stays prefix-based (not a
+      // hard-coded list) so it doesn't break when new model variants are released.
+      if (typeof candidate === 'string' && /^claude-[a-z0-9][\w.-]{0,60}$/.test(candidate)) {
+        return candidate;
+      }
+      logger.warn('WORKER', `[claude-mem-pro] Invalid session_summary_model "${candidate}" in .claude-mem.json — falling back to global setting`);
+    }
     const settingsPath = paths.settings();
     const settings = SettingsDefaultsManager.loadFromFile(settingsPath);
     return settings.CLAUDE_MEM_MODEL;

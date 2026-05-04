@@ -1,7 +1,7 @@
 {
-  "name": "claude-mem",
-  "version": "12.6.0",
-  "description": "Persistent memory system for Claude Code - seamlessly preserve context across sessions",
+  "name": "claude-mem-pro",
+  "version": "1.0.0",
+  "description": "claude-mem fork with per-project config, hierarchical memory, /remember command, and conflict detection",
   "author": {
     "name": "Alex Newman"
   },
