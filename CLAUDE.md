@@ -109,6 +109,48 @@ Claude-mem is designed with a clean separation between open-source core function
 
 This architecture preserves the open-source nature of the project while enabling sustainable development through optional paid features.
 
+## gstack
+
+gstack is installed at `~/.claude/skills/gstack` (Garry Tan's Claude Code skill framework).
+
+**Web browsing**: Always use `/browse` from gstack for all web browsing. Never use `mcp__claude-in-chrome__*` tools.
+
+Available skills:
+
+- `/office-hours` - Product thinking and brainstorming
+- `/plan-ceo-review` - CEO/founder-level plan review
+- `/plan-eng-review` - Engineering manager plan review
+- `/plan-design-review` - Design review for plans
+- `/plan-devex-review` - Developer experience review
+- `/design-consultation` - Design system consultation
+- `/design-shotgun` - Rapid design ideation
+- `/design-html` - HTML/CSS design implementation
+- `/design-review` - Design review
+- `/review` - Code review
+- `/autoplan` - Automated CEO → design → eng → DX review chain
+- `/ship` - Ship a release
+- `/land-and-deploy` - Land and deploy changes
+- `/canary` - Canary deployment
+- `/benchmark` - Benchmark performance
+- `/browse` - Web browsing (use this for ALL web browsing)
+- `/connect-chrome` - Connect to Chrome browser
+- `/qa` - Full QA testing
+- `/qa-only` - QA testing only
+- `/setup-browser-cookies` - Set up browser cookies
+- `/setup-deploy` - Set up deployment
+- `/setup-gbrain` - Set up gbrain
+- `/retro` - Retrospective
+- `/investigate` - Investigate an issue
+- `/document-release` - Document a release
+- `/codex` - Codex integration
+- `/cso` - Chief Security Officer review
+- `/careful` - Careful mode for risky changes
+- `/freeze` - Freeze the codebase
+- `/guard` - Guard against regressions
+- `/unfreeze` - Unfreeze the codebase
+- `/gstack-upgrade` - Upgrade gstack
+- `/learn` - Learn about the codebase
+
 ## Important
 
 No need to edit the changelog ever, it's generated automatically.
